@@ -11,28 +11,33 @@
 // Yes
 //------------------------- ...
 // But OpenGL just reads all the bytes without knowledge of structures
-//-------------------------- O.O
+//-------------------------- O.O naru-hodo
 
 
 namespace Kumo {
 
     static constexpr UInt32
-        ScreenWidth  = 1256,
-        ScreenHeight = 1256;
+        ScreenWidth  = 900,
+        ScreenHeight = 900;
 
+	// define the data which will be put into the fragment shader.
+	// format: RGBA
     static constexpr Pixel
         Black = { 0.0f, 0.0f, 0.0f,  1.0f },
-        // Sandy = { 0.5f, 0.8f, 0.05f, 1.0f };
-        Sandy = { 0.1f, 0.4f, 0.9f,  1.0f };
+        Sandy = { 0.5f, 0.8f, 0.05f, 1.0f };
+        //Sandy = { 0.1f, 0.4f, 0.9f,  1.0f };
 
+	// init window, renderer and buffer. Shouldn't the pixelbuffer be initialized before the renderer? Not that it matters but maybe would follow the rendering logic more.
     static GLFWwindow*  WindowHandle;
     static Renderer*    RendererInstance;
     static PixelBuffer* Buffer;
 
+	// Some kind of init for the data to be passed to buffer.
     struct Sand {
         UIndex X, Y;
     };
 
+	// Create window via GLFW
     static void Initialize() {
         if (!glfwInit())
             throw std::runtime_error("glfwInit");
@@ -40,7 +45,7 @@ namespace Kumo {
         WindowHandle = glfwCreateWindow(
             static_cast<int>(ScreenWidth),
             static_cast<int>(ScreenHeight),
-            "Pixelsim",
+            "Pixel-Rendering-Simulation",
             nullptr,
             nullptr
         );
@@ -48,10 +53,14 @@ namespace Kumo {
             throw std::runtime_error("glfwCreateWindow");
         glfwSwapInterval(0);
 
+		// Init renderer
         RendererInstance = new Renderer(WindowHandle);
-        Buffer = new PixelBuffer(ScreenWidth, ScreenHeight);
+        
+		// Init buffer. Again, why in this order?
+		Buffer = new PixelBuffer(ScreenWidth, ScreenHeight);
     }
 
+	// closes the window and removes buffer, renderer and window from memory.
     static void Clean() {
         delete Buffer;
         delete RendererInstance;
@@ -74,9 +83,11 @@ namespace Kumo {
         Buffer->Set(x, y, Black);
     }
 
+	// Sets bounds for filling when sand touches ground
+	unsigned int sandContainerWidth = 10;
     static UIndex
-        XLeft  = 100,
-        XRight = 156;
+		XLeft  = ScreenWidth/2 - sandContainerWidth,
+        XRight = ScreenWidth / 2 + sandContainerWidth;
 
     static void Update() {
         std::vector<Sand> sand;
@@ -84,19 +95,25 @@ namespace Kumo {
             glfwPollEvents();
 
             if (glfwGetKey(WindowHandle, GLFW_KEY_SPACE)) {
-                sand.push_back({128, 12});
-                Buffer->Set(128, 12, Sandy);
+				// push pixel into stack
+				// first value sets exit point of sand
+                sand.push_back({ScreenWidth/2, 12});
+                Buffer->Set(ScreenWidth/2, 12, Sandy);
             }
+
+			// Moves sand to the left and right.
             if (glfwGetKey(WindowHandle, GLFW_KEY_R)) {
-                XLeft  = 0;
+                XLeft  = 255;
                 XRight = 255;
             }
 
             for (Sand& s : sand) {
+				// factor makes the pixel move pixel*factor pixel.
+				unsigned int factor = 10;
                 const UIndex
-                    under = s.Y + 1,
-                    left  = s.X - 1,
-                    right = s.X + 1;
+                    under = s.Y + 1 * factor,
+                    left  = s.X - 1 * factor,
+                    right = s.X + 1 * factor;
                 
                 if (under >= ScreenHeight)
                     continue;
